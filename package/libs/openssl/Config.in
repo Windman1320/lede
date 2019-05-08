@@ -20,6 +20,10 @@ config OPENSSL_WITH_DEPRECATED
 	default y
 	prompt "Include deprecated APIs"
 
+config OPENSSL_NO_DEPRECATED
+	bool
+	default !OPENSSL_WITH_DEPRECATED
+
 config OPENSSL_WITH_DTLS
 	bool
 	default n
@@ -54,6 +58,11 @@ config OPENSSL_HARDWARE_SUPPORT
 	bool
 	default n
 	prompt "Enable hardware support"
+
+config OPENSSL_OPTIMIZE_SPEED
+	bool
+	default n
+	prompt "Enable optimization for speed instead of size"
 
 endif
 

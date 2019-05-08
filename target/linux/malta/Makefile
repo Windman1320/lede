@@ -14,10 +14,10 @@ INITRAMFS_EXTRA_FILES:=
 MAINTAINER:=Florian Fainelli <florian@openwrt.org>
 FEATURES:=ramdisk
 
-KERNEL_PATCHVER:=4.9
+KERNEL_PATCHVER:=4.14
 
 include $(INCLUDE_DIR)/target.mk
 
-DEFAULT_PACKAGES += wpad-mini kmod-mac80211-hwsim kmod-pcnet32
+DEFAULT_PACKAGES += wpad-basic kmod-mac80211-hwsim kmod-pcnet32
 
 $(eval $(call BuildTarget))

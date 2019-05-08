@@ -6,121 +6,60 @@
 #
 
 include $(TOPDIR)/rules.mk
-include $(INCLUDE_DIR)/image.mk
 
-PKG_NAME:=u-boot
-PKG_VERSION:=2016.03
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
-PKG_SOURCE_URL:= \
-	http://mirror2.openwrt.org/sources \
-	ftp://ftp.denx.de/pub/u-boot
+PKG_VERSION:=2018.07
 
-PKG_HASH:=e49337262ecac44dbdeac140f2c6ebd1eba345e0162b0464172e7f05583ed7bb
+PKG_HASH:=9f10df88bc91b35642e461217f73256bbaeeca9ae2db8db56197ba5e89e1f6d4
 
-PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(BUILD_VARIANT)/$(PKG_NAME)-$(PKG_VERSION)
-
-PKG_LICENSE:=GPL-2.0 GPL-2.0+
-PKG_LICENSE_FILES:=Licenses/README
-
+include $(INCLUDE_DIR)/kernel.mk
+include $(INCLUDE_DIR)/u-boot.mk
 include $(INCLUDE_DIR)/package.mk
+include $(INCLUDE_DIR)/host-build.mk
 
-define uboot/Default
-	TITLE:=
-	CONFIG:=
-	IMAGE:=
+define U-Boot/Default
+  BUILD_TARGET:=zynq
+  UBOOT_IMAGE:=spl/boot.bin u-boot.img
+  UBOOT_CONFIG:=zynq_$(1)
+  UENV:=default
+  HIDDEN:=1
 endef
 
-define uboot/zc702
-	TITLE:=U-Boot $(PKG_VERSION) for Xilinx ZC702 Dev Board
+define U-Boot/zc702
+  NAME:=Xilinx ZC702 Dev Board
+  BUILD_DEVICES:=xlnx_zynq-zc702
 endef
 
-define uboot/zc706
-	TITLE:=U-Boot $(PKG_VERSION) for Xilinx ZC706 Dev Board
+define U-Boot/zed
+  NAME:=Avnet Digilent ZedBoard Dev Board
+  BUILD_DEVICES:=avnet_zynq-zed
 endef
 
-define uboot/zed
-	TITLE:=U-Boot $(PKG_VERSION) for Avnet Digilent ZedBoard Dev Board
+define U-Boot/zybo
+  NAME:=Digilent Zybo Dev Board
+  BUILD_DEVICES:=digilent_zynq-zybo
 endef
 
-define uboot/zybo
-	TITLE:=U-Boot $(PKG_VERSION) for Digilent Zybo Dev Board
+define U-Boot/zybo_z7
+  NAME:=Digilent Zybo Z7 board
+  BUILD_DEVICES:=digilent_zynq-zybo-z7
 endef
 
-UBOOTS := \
+UBOOT_TARGETS := \
 	zc702 \
 	zed \
 	zybo \
+	zybo_z7
 
-define Package/uboot/template
-define Package/uboot-zynq-$(1)
-	SECTION:=boot
-	CATEGORY:=Boot Loaders
-	DEPENDS:=@TARGET_zynq
-	TITLE:=$(2)
-	URL:=http://www.denx.de/wiki/U-Boot
-	VARIANT:=$(1)
-	MAINTAINER:=Jason Wu <jason.wu.misc@gmail.com>
-endef
+define Build/InstallDev
+	$(INSTALL_DIR) $(STAGING_DIR_IMAGE)
+	$(CP) $(PKG_BUILD_DIR)/spl/boot.bin $(STAGING_DIR_IMAGE)/$(BUILD_DEVICES)-boot.bin
+	$(CP) $(PKG_BUILD_DIR)/u-boot.img $(STAGING_DIR_IMAGE)/$(BUILD_DEVICES)-u-boot.img
+	$(CP) ./files/uEnv-$(UENV).txt $(STAGING_DIR_IMAGE)/$(BUILD_DEVICES)-uEnv.txt
 endef
 
-define BuildUBootPackage
-	$(eval $(uboot/Default))
-	$(eval $(uboot/$(1)))
-	$(call Package/uboot/template,$(1),$(TITLE))
+define Package/u-boot/install/default
 endef
 
-ifdef BUILD_VARIANT
-$(eval $(call uboot/$(BUILD_VARIANT)))
-UBOOT_CONFIG:=$(if $(CONFIG),$(CONFIG),$(BUILD_VARIANT))
-UBOOT_IMAGE:=$(if $(IMAGE),$(IMAGE),openwrt-$(BOARD)-$(BUILD_VARIANT)-u-boot.bin)
-endif
+Build/Exports:=$(Host/Exports)
 
-define Build/Configure
-	+$(MAKE) $(PKG_JOBS) -C $(PKG_BUILD_DIR) \
-		$(BOARD)_$(UBOOT_CONFIG)_config
-endef
-
-define Build/Compile
-	+$(MAKE) $(PKG_JOBS) -C $(PKG_BUILD_DIR) \
-		CROSS_COMPILE=$(TARGET_CROSS) DTC=$(LINUX_DIR)/scripts/dtc/dtc
-endef
-
-define Package/uboot/install/default
-	$(INSTALL_DIR) $(BIN_DIR)/uboot-$(BOARD)-$(1)
-
-	$(CP) $(PKG_BUILD_DIR)/u-boot \
-		$(BIN_DIR)/uboot-$(BOARD)-$(1)/u-boot.elf
-
-	$(CP) $(PKG_BUILD_DIR)/u-boot-dtb.bin \
-		$(BIN_DIR)/uboot-$(BOARD)-$(1)/u-boot-dtb.bin
-
-	$(CP) $(PKG_BUILD_DIR)/u-boot.dtb \
-		$(BIN_DIR)/uboot-$(BOARD)-$(1)/u-boot.dtb
-
-	$(CP) $(PKG_BUILD_DIR)/u-boot-dtb.img \
-		$(BIN_DIR)/uboot-$(BOARD)-$(1)/u-boot-dtb.img
-
-	$(CP) $(PKG_BUILD_DIR)/spl/boot.bin \
-		$(BIN_DIR)/uboot-$(BOARD)-$(1)/boot.bin
-
-	$(CP) $(PKG_BUILD_DIR)/spl/u-boot-spl \
-		$(BIN_DIR)/uboot-$(BOARD)-$(1)/u-boot-spl
-
-	$(CP) $(PKG_BUILD_DIR)/spl/u-boot-spl-dtb.bin \
-		$(BIN_DIR)/uboot-$(BOARD)-$(1)/u-boot-spl-dtb.bin
-endef
-
-define Package/uboot/install/template
-define Package/uboot-zynq-$(1)/install
-	$(call Package/uboot/install/default,$(2))
-endef
-endef
-
-$(foreach u,$(UBOOTS), \
-	$(eval $(call Package/uboot/install/template,$(u),$(u))) \
-)
-
-$(foreach u,$(UBOOTS), \
-	$(eval $(call BuildUBootPackage,$(u))) \
-	$(eval $(call BuildPackage,uboot-zynq-$(u))) \
-)
+$(eval $(call BuildPackage/U-Boot))

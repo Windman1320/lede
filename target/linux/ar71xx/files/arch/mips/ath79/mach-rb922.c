@@ -8,12 +8,17 @@
  *  by the Free Software Foundation.
  */
 
+#include <linux/version.h>
 #include <linux/phy.h>
 #include <linux/delay.h>
 #include <linux/platform_device.h>
 #include <linux/ath9k_platform.h>
 #include <linux/mtd/mtd.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,14,0)
 #include <linux/mtd/nand.h>
+#else
+#include <linux/mtd/rawnand.h>
+#endif
 #include <linux/mtd/partitions.h>
 #include <linux/spi/spi.h>
 #include <linux/spi/flash.h>
@@ -108,7 +113,7 @@ static struct at803x_platform_data rb922gs_at803x_data = {
 static struct mdio_board_info rb922gs_mdio0_info[] = {
 	{
 		.bus_id = "ag71xx-mdio.0",
-		.phy_addr = RB922_PHY_ADDR,
+		.mdio_addr = RB922_PHY_ADDR,
 		.platform_data = &rb922gs_at803x_data,
 	},
 };
@@ -195,7 +200,9 @@ static int rb922gs_nand_scan_fixup(struct mtd_info *mtd)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4,6,0)
 	struct nand_chip *chip = mtd->priv;
-#endif
+#else
+	struct nand_chip *chip = mtd_to_nand(mtd);
+#endif /* < 4.6.0 */
 
 	if (mtd->writesize == 512) {
 		/*
@@ -208,6 +215,8 @@ static int rb922gs_nand_scan_fixup(struct mtd_info *mtd)
 		mtd_set_ooblayout(mtd, &rb922gs_nand_ecclayout_ops);
 #endif
 	}
+
+	chip->options = NAND_NO_SUBPAGE_WRITE;
 
 	return 0;
 }
@@ -252,7 +261,7 @@ static void __init rb922gs_setup(void)
 	if (!info)
 		return;
 
-	scnprintf(buf, sizeof(buf), "Mikrotik RouterBOARD %s",
+	scnprintf(buf, sizeof(buf), "MikroTik RouterBOARD %s",
 		  (info->board_name) ? info->board_name : "");
 	mips_set_machine_name(buf);
 
@@ -272,9 +281,16 @@ static void __init rb922gs_setup(void)
 	ath79_eth0_data.mii_bus_dev = &ath79_mdio0_device.dev;
 	ath79_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_RGMII;
 	ath79_eth0_data.phy_mask = BIT(RB922_PHY_ADDR);
-	ath79_eth0_pll_data.pll_10 = 0x81001313;
-	ath79_eth0_pll_data.pll_100 = 0x81000101;
-	ath79_eth0_pll_data.pll_1000 = 0x8f000000;
+	if (strcmp(info->board_name, "921GS-5HPacD r2") == 0) {
+		ath79_eth0_pll_data.pll_10 = 0xa0001313;
+		ath79_eth0_pll_data.pll_100 = 0xa0000101;
+		ath79_eth0_pll_data.pll_1000 = 0x8f000000;
+	}
+	else {
+		ath79_eth0_pll_data.pll_10 = 0x81001313;
+		ath79_eth0_pll_data.pll_100 = 0x81000101;
+		ath79_eth0_pll_data.pll_1000 = 0x8f000000;
+	}
 
 	ath79_register_eth(0);
 

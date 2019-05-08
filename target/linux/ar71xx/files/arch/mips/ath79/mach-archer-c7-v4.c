@@ -83,7 +83,7 @@ static struct spi_gpio_platform_data archer_c7_v4_spi_data = {
 	.num_chipselect	= 1,
 };
 
-static u8 archer_c7_v4_ssr_initdata __initdata = 0xff;
+static u8 archer_c7_v4_ssr_initdata = 0xff;
 
 static struct gen_74x164_chip_platform_data archer_c7_v4_ssr_data = {
 	.base = ARCHER_C7_74HC_GPIO_BASE,
@@ -200,7 +200,7 @@ static struct ar8327_platform_data archer_c7_v4_ar8337_data = {
 static struct mdio_board_info archer_c7_v4_mdio0_info[] = {
 	{
 		.bus_id = "ag71xx-mdio.0",
-		.phy_addr = 0,
+		.mdio_addr = 0,
 		.platform_data = &archer_c7_v4_ar8337_data,
 	},
 };

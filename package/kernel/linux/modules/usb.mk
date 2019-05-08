@@ -71,6 +71,44 @@ endef
 $(eval $(call KernelPackage,usb-phy-nop))
 
 
+define KernelPackage/usb-phy-qcom-dwc3
+  TITLE:=DWC3 USB QCOM PHY driver
+  DEPENDS:=@!LINUX_4_19 @TARGET_ipq806x +kmod-usb-dwc3-of-simple
+  KCONFIG:= CONFIG_PHY_QCOM_DWC3
+  FILES:= \
+    $(LINUX_DIR)/drivers/phy/phy-qcom-dwc3.ko@lt4.13 \
+    $(LINUX_DIR)/drivers/phy/qualcomm/phy-qcom-dwc3.ko@ge4.13
+  AUTOLOAD:=$(call AutoLoad,45,phy-qcom-dwc3,1)
+  $(call AddDepends/usb)
+endef
+
+define KernelPackage/usb-phy-qcom-dwc3/description
+ This driver provides support for the integrated DesignWare
+ USB3 IP Core within the QCOM SoCs.
+endef
+
+$(eval $(call KernelPackage,usb-phy-qcom-dwc3))
+
+
+define KernelPackage/phy-ath79-usb
+  TITLE:=Support for ATH79 USB PHY
+  KCONFIG:=CONFIG_PHY_AR7100_USB \
+	CONFIG_PHY_AR7200_USB
+  DEPENDS:=@TARGET_ath79
+  HIDDEN:=1
+  FILES:=$(LINUX_DIR)/drivers/phy/phy-ar7100-usb.ko \
+	$(LINUX_DIR)/drivers/phy/phy-ar7200-usb.ko
+  AUTOLOAD:=$(call AutoLoad,21,phy-ar7100-usb phy-ar7200-usb,1)
+  $(call AddDepends/usb)
+endef
+
+define KernelPackage/phy-ath79-usb/description
+  Support for ATH79 USB transceiver
+endef
+
+$(eval $(call KernelPackage,phy-ath79-usb))
+
+
 define KernelPackage/usb-gadget
   TITLE:=USB Gadget support
   KCONFIG:=CONFIG_USB_GADGET
@@ -104,6 +142,23 @@ endef
 
 $(eval $(call KernelPackage,usb-lib-composite))
 
+define KernelPackage/usb-gadget-hid
+  TITLE:=USB HID Gadget Support
+  KCONFIG:=CONFIG_USB_G_HID
+  DEPENDS:=+kmod-usb-gadget +kmod-usb-lib-composite
+  FILES:= \
+	  $(LINUX_DIR)/drivers/usb/gadget/legacy/g_hid.ko \
+	  $(LINUX_DIR)/drivers/usb/gadget/function/usb_f_hid.ko
+  AUTOLOAD:=$(call AutoLoad,52,usb_f_hid)
+  $(call AddDepends/usb)
+endef
+
+define KernelPackage/usb-gadget-hid/description
+  Kernel support for USB HID Gadget.
+endef
+
+$(eval $(call KernelPackage,usb-gadget-hid))
+
 define KernelPackage/usb-gadget-ehci-debug
   TITLE:=USB EHCI debug port Gadget support
   KCONFIG:=\
@@ -112,7 +167,6 @@ define KernelPackage/usb-gadget-ehci-debug
 	CONFIG_USB_G_DBGP_PRINTK=n
   DEPENDS:=+kmod-usb-gadget +kmod-usb-lib-composite +kmod-usb-gadget-serial
   FILES:=$(LINUX_DIR)/drivers/usb/gadget/legacy/g_dbgp.ko
-  AUTOLOAD:=$(call AutoLoad,52,g_dbgp)
   $(call AddDepends/usb)
 endef
 
@@ -135,7 +189,7 @@ define KernelPackage/usb-gadget-eth
 	$(LINUX_DIR)/drivers/usb/gadget/function/usb_f_ecm_subset.ko \
 	$(LINUX_DIR)/drivers/usb/gadget/function/usb_f_rndis.ko \
 	$(LINUX_DIR)/drivers/usb/gadget/legacy/g_ether.ko
-  AUTOLOAD:=$(call AutoLoad,52,usb_f_ecm g_ether)
+  AUTOLOAD:=$(call AutoLoad,52,usb_f_ecm)
   $(call AddDepends/usb)
 endef
 
@@ -156,7 +210,7 @@ define KernelPackage/usb-gadget-serial
 	$(LINUX_DIR)/drivers/usb/gadget/function/usb_f_obex.ko \
 	$(LINUX_DIR)/drivers/usb/gadget/function/usb_f_serial.ko \
 	$(LINUX_DIR)/drivers/usb/gadget/legacy/g_serial.ko
-  AUTOLOAD:=$(call AutoLoad,52,usb_f_acm g_serial)
+  AUTOLOAD:=$(call AutoLoad,52,usb_f_acm)
   $(call AddDepends/usb)
 endef
 
@@ -173,7 +227,7 @@ define KernelPackage/usb-gadget-mass-storage
   FILES:= \
 	$(LINUX_DIR)/drivers/usb/gadget/function/usb_f_mass_storage.ko \
 	$(LINUX_DIR)/drivers/usb/gadget/legacy/g_mass_storage.ko
-  AUTOLOAD:=$(call AutoLoad,52,usb_f_mass_storage g_mass_storage)
+  AUTOLOAD:=$(call AutoLoad,52,usb_f_mass_storage)
   $(call AddDepends/usb)
 endef
 
@@ -187,6 +241,7 @@ $(eval $(call KernelPackage,usb-gadget-mass-storage))
 define KernelPackage/usb-uhci
   TITLE:=Support for UHCI controllers
   KCONFIG:= \
+	CONFIG_USB_PCI=y \
 	CONFIG_USB_UHCI_ALT \
 	CONFIG_USB_UHCI_HCD
   FILES:=$(LINUX_DIR)/drivers/usb/host/uhci-hcd.ko
@@ -236,7 +291,9 @@ $(eval $(call KernelPackage,usb-ohci,1))
 define KernelPackage/usb-ohci-pci
   TITLE:=Support for PCI OHCI controllers
   DEPENDS:=@PCI_SUPPORT +kmod-usb-ohci
-  KCONFIG:=CONFIG_USB_OHCI_HCD_PCI
+  KCONFIG:= \
+	CONFIG_USB_PCI=y \
+	CONFIG_USB_OHCI_HCD_PCI
   FILES:=$(LINUX_DIR)/drivers/usb/host/ohci-pci.ko
   AUTOLOAD:=$(call AutoLoad,51,ohci-pci,1)
   $(call AddDepends/usb)
@@ -260,6 +317,17 @@ define KernelPackage/usb-bcma
   $(call AddDepends/usb)
 endef
 $(eval $(call KernelPackage,usb-bcma))
+
+define KernelPackage/usb-fotg210
+  TITLE:=Support for FOTG210 USB host controllers
+  DEPENDS:=@USB_SUPPORT @TARGET_gemini
+  KCONFIG:=CONFIG_USB_FOTG210_HCD
+  FILES:= \
+	$(if $(CONFIG_USB_FOTG210_HCD),$(LINUX_DIR)/drivers/usb/host/fotg210-hcd.ko)
+  AUTOLOAD:=$(call AutoLoad,50,fotg210-hcd,1)
+  $(call AddDepends/usb)
+endef
+$(eval $(call KernelPackage,usb-fotg210))
 
 define KernelPackage/usb-ssb
   TITLE:=Support for SSB USB controllers
@@ -292,6 +360,7 @@ define KernelPackage/usb2
 	+TARGET_brcm47xx:kmod-usb-ssb \
 	+TARGET_bcm53xx:kmod-usb-bcma \
 	+TARGET_bcm53xx:kmod-phy-bcm-ns-usb2 \
+	+TARGET_ath79:kmod-phy-ath79-usb \
 	+kmod-usb-ehci
   KCONFIG:=\
 	CONFIG_USB_EHCI_HCD_PLATFORM \
@@ -324,7 +393,9 @@ $(eval $(call KernelPackage,usb2))
 define KernelPackage/usb2-pci
   TITLE:=Support for PCI USB2 controllers
   DEPENDS:=@PCI_SUPPORT +kmod-usb2
-  KCONFIG:=CONFIG_USB_EHCI_PCI
+  KCONFIG:= \
+	CONFIG_USB_PCI=y \
+	CONFIG_USB_EHCI_PCI
   FILES:=$(LINUX_DIR)/drivers/usb/host/ehci-pci.ko
   AUTOLOAD:=$(call AutoLoad,42,ehci-pci,1)
   $(call AddDepends/usb)
@@ -341,6 +412,7 @@ define KernelPackage/usb-dwc2
   TITLE:=DWC2 USB controller driver
   DEPENDS:=+USB_GADGET_SUPPORT:kmod-usb-gadget
   KCONFIG:= \
+	CONFIG_USB_PCI=y \
 	CONFIG_USB_DWC2 \
 	CONFIG_USB_DWC2_PCI \
 	CONFIG_USB_DWC2_PLATFORM \
@@ -383,6 +455,43 @@ define KernelPackage/usb-dwc3/description
 endef
 
 $(eval $(call KernelPackage,usb-dwc3))
+
+
+define KernelPackage/usb-dwc3-of-simple
+  TITLE:=DWC3 USB simple OF driver
+  DEPENDS:=@!LINUX_4_19 @TARGET_ipq40xx||@TARGET_ipq806x +kmod-usb-dwc3
+  KCONFIG:= CONFIG_USB_DWC3_OF_SIMPLE
+  FILES:= $(LINUX_DIR)/drivers/usb/dwc3/dwc3-of-simple.ko
+  AUTOLOAD:=$(call AutoLoad,53,dwc3-of-simple,1)
+  $(call AddDepends/usb)
+endef
+
+define KernelPackage/usb-dwc3-of-simple/description
+ This driver provides generic platform glue for the integrated DesignWare
+ USB3 IP Core.
+endef
+
+
+$(eval $(call KernelPackage,usb-dwc3-of-simple))
+
+
+define KernelPackage/usb-dwc3-qcom
+  TITLE:=DWC3 Qualcomm USB driver
+  DEPENDS:=@LINUX_4_19 @TARGET_ipq40xx||@TARGET_ipq806x +kmod-usb-dwc3
+  KCONFIG:= CONFIG_USB_DWC3_QCOM
+  FILES:= $(LINUX_DIR)/drivers/usb/dwc3/dwc3-qcom.ko
+  AUTOLOAD:=$(call AutoLoad,53,dwc3-qcom,1)
+  $(call AddDepends/usb)
+endef
+
+define KernelPackage/usb-dwc3-qcom/description
+ Some Qualcomm SoCs use DesignWare Core IP for USB2/3 functionality.
+ This driver also handles Qscratch wrapper which is needed for
+ peripheral mode support.
+endef
+
+
+$(eval $(call KernelPackage,usb-dwc3-qcom))
 
 
 define KernelPackage/usb-acm
@@ -647,6 +756,21 @@ define KernelPackage/usb-serial-mos7720/description
 endef
 
 $(eval $(call KernelPackage,usb-serial-mos7720))
+
+
+define KernelPackage/usb-serial-mos7840
+  TITLE:=Support for Moschip MOS7840 devices
+  KCONFIG:=CONFIG_USB_SERIAL_MOS7840
+  FILES:=$(LINUX_DIR)/drivers/usb/serial/mos7840.ko
+  AUTOLOAD:=$(call AutoProbe,mos7840)
+  $(call AddDepends/usb-serial)
+endef
+
+define KernelPackage/usb-serial-mos7840/description
+ Kernel support for Moschip MOS7840 USB-to-Serial converters
+endef
+
+$(eval $(call KernelPackage,usb-serial-mos7840))
 
 
 define KernelPackage/usb-serial-pl2303
@@ -1451,7 +1575,7 @@ $(eval $(call KernelPackage,usbip-server))
 
 define KernelPackage/usb-chipidea
   TITLE:=Host and device support for Chipidea controllers
-  DEPENDS:=+USB_GADGET_SUPPORT:kmod-usb-gadget @TARGET_ar71xx +kmod-usb-ehci +kmod-usb-phy-nop
+  DEPENDS:=+USB_GADGET_SUPPORT:kmod-usb-gadget @TARGET_ar71xx||TARGET_ath79 +kmod-usb-ehci +kmod-usb-phy-nop
   KCONFIG:= \
 	CONFIG_EXTCON \
 	CONFIG_USB_CHIPIDEA \
@@ -1461,7 +1585,8 @@ define KernelPackage/usb-chipidea
   FILES:= \
 	$(LINUX_DIR)/drivers/extcon/extcon.ko@lt4.9 \
 	$(LINUX_DIR)/drivers/extcon/extcon-core.ko@ge4.9 \
-	$(LINUX_DIR)/drivers/usb/chipidea/ci_hdrc.ko
+	$(LINUX_DIR)/drivers/usb/chipidea/ci_hdrc.ko \
+	$(LINUX_DIR)/drivers/usb/common/ulpi.ko@ge4.18
   AUTOLOAD:=$(call AutoLoad,39,ci_hdrc,1)
   $(call AddDepends/usb)
 endef
@@ -1471,6 +1596,31 @@ define KernelPackage/usb-chipidea/description
 endef
 
 $(eval $(call KernelPackage,usb-chipidea))
+
+
+define KernelPackage/usb-chipidea2
+  TITLE:=Host and device support for Chipidea2 controllers
+  DEPENDS:=+kmod-usb-chipidea
+  KCONFIG:= \
+	CONFIG_EXTCON \
+	CONFIG_USB_CHIPIDEA \
+	CONFIG_USB_CHIPIDEA_HOST=y \
+	CONFIG_USB_CHIPIDEA_UDC=y \
+	CONFIG_USB_CHIPIDEA_DEBUG=y
+  FILES:= \
+	$(LINUX_DIR)/drivers/extcon/extcon.ko@lt4.9 \
+	$(LINUX_DIR)/drivers/extcon/extcon-core.ko@ge4.9 \
+	$(LINUX_DIR)/drivers/usb/chipidea/ci_hdrc_usb2.ko
+  AUTOLOAD:=$(call AutoLoad,39,ci_hdrc_usb2,1)
+  $(call AddDepends/usb)
+endef
+
+define KernelPackage/usb-chipidea2/description
+ Kernel support for USB Chipidea controllers
+endef
+
+$(eval $(call KernelPackage,usb-chipidea2))
+
 
 define KernelPackage/usbmon
   TITLE:=USB traffic monitor
@@ -1499,6 +1649,7 @@ define KernelPackage/usb3
 	+TARGET_bcm53xx:kmod-usb-bcma \
 	+TARGET_bcm53xx:kmod-phy-bcm-ns-usb3
   KCONFIG:= \
+	CONFIG_USB_PCI=y \
 	CONFIG_USB_XHCI_HCD \
 	CONFIG_USB_XHCI_PCI \
 	CONFIG_USB_XHCI_PLATFORM \
@@ -1520,7 +1671,9 @@ $(eval $(call KernelPackage,usb3))
 
 define KernelPackage/usb-net2280
   TITLE:=Support for NetChip 228x PCI USB peripheral controller
-  KCONFIG:= CONFIG_USB_NET2280
+  KCONFIG:= \
+	CONFIG_USB_PCI=y \
+	CONFIG_USB_NET2280
   DEPENDS:=@PCI_SUPPORT +kmod-usb-gadget
   FILES:=$(LINUX_DIR)/drivers/usb/gadget/udc/net2280.ko
   AUTOLOAD:=$(call AutoLoad,46,net2280)
@@ -1532,4 +1685,20 @@ define KernelPackage/usb-net2280/description
 endef
 
 $(eval $(call KernelPackage,usb-net2280))
+
+define KernelPackage/chaoskey
+  SUBMENU:=$(USB_MENU)
+  TITLE:=Chaoskey hardware RNG support
+  DEPENDS:=+kmod-random-core
+  KCONFIG:=CONFIG_USB_CHAOSKEY
+  FILES:=$(LINUX_DIR)/drivers/usb/misc/chaoskey.ko
+  AUTOLOAD:=$(call AutoProbe,chaoskey)
+  $(call AddDepends/usb)
+endef
+
+define KernelPackage/chaoskey/description
+  Kernel module for chaoskey, USB attached true random number generator
+endef
+
+$(eval $(call KernelPackage,chaoskey))
 
